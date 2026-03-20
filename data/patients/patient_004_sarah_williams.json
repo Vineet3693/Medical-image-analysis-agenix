@@ -1,0 +1,19 @@
+{
+    "patient_id": "MIA-P004",
+    "name": "Sarah Williams",
+    "age": 61,
+    "gender": "Female",
+    "height_cm": 160,
+    "weight_kg": 72,
+    "bmi": 28.1,
+    "profession": "Retired Nurse",
+    "medical_history": "Osteoarthritis, previous knee surgery (2018)",
+    "study_type": "Knee MRI",
+    "sequence_type": "T1",
+    "imaging_plane": "Coronal",
+    "clinical_indication": "Right knee pain and swelling",
+    "referring_physician": "Dr. Michael Thompson",
+    "date_of_birth": "1965-04-18",
+    "contact_phone": "(555) 456-7890",
+    "emergency_contact": "John Williams (Son) - (555) 456-7891"
+}

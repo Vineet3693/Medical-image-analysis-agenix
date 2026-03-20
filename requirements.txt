@@ -1,0 +1,37 @@
+# MIA System Requirements
+# Medical Image Analysis with Gemini 2.5 Flash and Groq
+
+# LangGraph and AI
+langgraph>=0.2.0
+langchain>=0.1.0
+langchain-google-genai>=1.0.0
+google-generativeai>=0.3.0
+
+# Groq (uses OpenAI-compatible API)
+openai>=1.0.0
+
+# PDF Generation
+reportlab>=4.0.0
+Pillow>=10.0.0
+qrcode[pil]>=7.4.0
+
+# Data validation and models
+pydantic>=2.0.0
+
+# Image processing
+opencv-python>=4.8.0
+numpy>=1.24.0
+
+# Utilities
+python-dotenv>=1.0.0
+
+# Logging
+loguru>=0.7.0
+
+# FastAPI and Web Server
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+
+# Development dependencies (optional)
+pytest>=7.4.0

@@ -1,0 +1,19 @@
+{
+    "patient_id": "MIA-P001",
+    "name": "Robert Johnson",
+    "age": 45,
+    "gender": "Male",
+    "height_cm": 178,
+    "weight_kg": 85,
+    "bmi": 26.8,
+    "profession": "Software Engineer",
+    "medical_history": "Hypertension, occasional migraines",
+    "study_type": "Brain MRI",
+    "sequence_type": "T2",
+    "imaging_plane": "Axial",
+    "clinical_indication": "Persistent headaches for 3 months",
+    "referring_physician": "Dr. Sarah Mitchell",
+    "date_of_birth": "1981-03-15",
+    "contact_phone": "(555) 123-4567",
+    "emergency_contact": "Mary Johnson (Wife) - (555) 123-4568"
+}

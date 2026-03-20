@@ -1,0 +1,19 @@
+{
+    "patient_id": "MIA-P002",
+    "name": "Maria Garcia",
+    "age": 52,
+    "gender": "Female",
+    "height_cm": 165,
+    "weight_kg": 68,
+    "bmi": 25.0,
+    "profession": "Teacher",
+    "medical_history": "Type 2 Diabetes, controlled with medication",
+    "study_type": "Lumbar Spine MRI",
+    "sequence_type": "T1/T2",
+    "imaging_plane": "Sagittal",
+    "clinical_indication": "Lower back pain radiating to left leg",
+    "referring_physician": "Dr. James Chen",
+    "date_of_birth": "1974-07-22",
+    "contact_phone": "(555) 234-5678",
+    "emergency_contact": "Carlos Garcia (Husband) - (555) 234-5679"
+}

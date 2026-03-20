@@ -1,0 +1,19 @@
+{
+    "patient_id": "MIA-P005",
+    "name": "James Thompson",
+    "age": 29,
+    "gender": "Male",
+    "height_cm": 185,
+    "weight_kg": 90,
+    "bmi": 26.3,
+    "profession": "Professional Athlete",
+    "medical_history": "Previous shoulder dislocation (2023)",
+    "study_type": "Shoulder MRI",
+    "sequence_type": "T2",
+    "imaging_plane": "Coronal",
+    "clinical_indication": "Recurrent shoulder instability",
+    "referring_physician": "Dr. Amanda Foster",
+    "date_of_birth": "1997-09-05",
+    "contact_phone": "(555) 567-8901",
+    "emergency_contact": "Patricia Thompson (Mother) - (555) 567-8902"
+}

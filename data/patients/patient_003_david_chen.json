@@ -1,0 +1,19 @@
+{
+    "patient_id": "MIA-P003",
+    "name": "David Chen",
+    "age": 38,
+    "gender": "Male",
+    "height_cm": 172,
+    "weight_kg": 75,
+    "bmi": 25.3,
+    "profession": "Accountant",
+    "medical_history": "No significant medical history",
+    "study_type": "Cervical Spine MRI",
+    "sequence_type": "T2",
+    "imaging_plane": "Axial",
+    "clinical_indication": "Neck pain following motor vehicle accident",
+    "referring_physician": "Dr. Emily Rodriguez",
+    "date_of_birth": "1988-11-10",
+    "contact_phone": "(555) 345-6789",
+    "emergency_contact": "Lisa Chen (Wife) - (555) 345-6790"
+}
