@@ -1570,11 +1570,28 @@ class PDFGenerationNode:
         
         patient_data = state.get("patient_info", {})
         # Support both new modality-agnostic key and old key (Bug #3 fix)
-        mri_data = state.get("image_metadata", state.get("mri_metadata", {}))
+        mri_data = dict(state.get("image_metadata", state.get("mri_metadata", {})))
         vision_data = state.get("vision_analysis", {})
         validation_data = state.get("cross_validation", {})
         report_data = state.get("report_content", {})
         safety_data = state.get("safety_analysis", {})
+
+        # ── Use AI-classified image type (overrides patient JSON metadata) ────
+        image_classification = state.get("image_classification") or {}
+        if image_classification.get("image_type"):
+            img_type  = image_classification.get("image_type", "")
+            sub_type  = image_classification.get("sub_type", "")
+            # Build a descriptive study_type: e.g. "X-Ray - Skeletal X-ray (Hand/Wrist)"
+            if sub_type and sub_type.lower() not in img_type.lower():
+                mri_data["study_type"] = f"{img_type} \u2013 {sub_type}"
+            else:
+                mri_data["study_type"] = img_type
+            # Override sequence / plane if the classifier detected them
+            if image_classification.get("sequence_type"):
+                mri_data["sequence_type"] = image_classification["sequence_type"]
+            if image_classification.get("imaging_plane"):
+                mri_data["imaging_plane"] = image_classification["imaging_plane"]
+            logger.info(f"Study type overridden by AI classification: {mri_data['study_type']}")
         
         logger.info(f"Patient: {patient_data.get('name', 'Unknown')}")
         logger.info(f"Study: {mri_data.get('study_type', 'Unknown')}")

@@ -273,11 +273,25 @@ def pdf_node(state: MIAState) -> MIAState:
         
         # Extract data from state
         patient_data = state.get("patient_info", {})
-        mri_data = state.get("mri_metadata", {})
-        vision_data = state.get("vision_analysis", {})
+        mri_data     = dict(state.get("mri_metadata", {}))
+        vision_data  = state.get("vision_analysis", {})
         validation_data = state.get("cross_validation", {})
-        report_data = state.get("report_content", {})
-        safety_data = state.get("safety_analysis", {})
+        report_data  = state.get("report_content", {})
+        safety_data  = state.get("safety_analysis", {})
+
+        # ── Use AI-classified image type instead of patient JSON metadata ─────
+        image_classification = state.get("image_classification") or {}
+        if image_classification.get("image_type"):
+            img_type  = image_classification.get("image_type", "")
+            sub_type  = image_classification.get("sub_type", "")
+            if sub_type and sub_type.lower() not in img_type.lower():
+                mri_data["study_type"] = f"{img_type} \u2013 {sub_type}"
+            else:
+                mri_data["study_type"] = img_type
+            if image_classification.get("sequence_type"):
+                mri_data["sequence_type"] = image_classification["sequence_type"]
+            if image_classification.get("imaging_plane"):
+                mri_data["imaging_plane"] = image_classification["imaging_plane"]
         
         # Create PatientInfo model
         patient_info = PatientInfo(
