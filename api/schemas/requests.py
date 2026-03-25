@@ -56,6 +56,10 @@ class AnalysisRequest(BaseModel):
     """Complete analysis request with patient and MRI metadata"""
     patient_info: PatientInfoRequest
     mri_metadata: MRIMetadataRequest
+    report_type: Optional[str] = Field(
+        "long",
+        description="Report format: 'short' (3-page summary) or 'long' (full 11-page report)"
+    )
     
     class Config:
         json_schema_extra = {
@@ -72,6 +76,7 @@ class AnalysisRequest(BaseModel):
                     "study_type": "Brain MRI",
                     "sequence_type": "T2",
                     "imaging_plane": "Axial"
-                }
+                },
+                "report_type": "long"
             }
         }

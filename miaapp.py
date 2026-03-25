@@ -64,7 +64,8 @@ class MIAWorkflow:
     
     def create_initial_state(self, patient_info: Dict[str, Any] = None,
                             mri_metadata: Dict[str, Any] = None,
-                            mri_image_path: str = None) -> Dict[str, Any]:
+                            mri_image_path: str = None,
+                            report_type: str = "long") -> Dict[str, Any]:
         """
         Create initial workflow state.
         
@@ -88,6 +89,7 @@ class MIAWorkflow:
             "report_content": {},
             "safety_analysis": {},
             "pdf_path": "",
+            "report_type": report_type,  # None = will be chosen interactively; 'short' or 'long'
             "current_step": "initialization",
             "errors": []
         }
@@ -115,9 +117,9 @@ class MIAWorkflow:
                 print("MIA - MEDICAL IMAGE ANALYSIS SYSTEM")
                 print("=" * 80)
                 print(f"\nReport ID: {state['report_id']}")
-                print("\n🔍 STEP 1: PROVIDE IMAGE AND PATIENT DATA\n")
-                
-                # Get MRI image path FIRST (if not already set)
+
+                # ── STEP 1: Medical image path ─────────────────────────────────
+                print("\n🔍 STEP 1: PROVIDE MEDICAL IMAGE\n")
                 if not state.get("mri_image_path"):
                     print("📸 Medical Image:")
                     mri_path = input("   Enter image path (or press Enter for default): ").strip()
@@ -125,11 +127,32 @@ class MIAWorkflow:
                         mri_path = "data/sample_mri/sample_brain.jpg"
                     state["mri_image_path"] = mri_path
                     print(f"   ✓ Image: {mri_path}\n")
-                
-                # Load patient data from JSON file (if not already set)
+
+                # ── STEP 2: Choose report format ───────────────────────────────
+                if not state.get("report_type"):
+                    print("\n" + "─" * 80)
+                    print("📄 STEP 2: CHOOSE REPORT FORMAT\n")
+                    print("   1. Short Report  —  compact 3-page summary")
+                    print("      • Page 1: Cover + Patient Info + Clinical Impression")
+                    print("      • Page 2: Findings Table + Medical Image")
+                    print("      • Page 3: Full-size Medical Image")
+                    print()
+                    print("   2. Long Report   —  full comprehensive report (11 pages)")
+                    print("      • Complete analysis, safety review & recommendations")
+                    print()
+                    report_choice = input("   Select format (1 = Short, 2 = Long, Enter = Short): ").strip()
+                    if report_choice == "2":
+                        state["report_type"] = "long"
+                        print("   ✓ Report format: LONG (full report)\n")
+                    else:
+                        state["report_type"] = "short"
+                        print("   ✓ Report format: SHORT (3 pages)\n")
+
+                # ── STEP 3: Patient data ───────────────────────────────────────
                 if not state.get("patient_info"):
-                    print("👤 Patient Data (JSON File):")
-                    print("\n📁 Available patient files:")
+                    print("\n" + "─" * 80)
+                    print("👤 STEP 3: PATIENT DATA (JSON File)\n")
+                    print("📁 Available patient files:")
                     
                     patient_loader = PatientDataLoader()
                     available_patients = patient_loader.list_available_patients()
@@ -142,7 +165,6 @@ class MIAWorkflow:
                         print(f"\n   Or enter custom JSON file path")
                         patient_input = input("   Select patient (number or path): ").strip()
                         
-                        # Check if it's a number or path
                         if patient_input.isdigit():
                             idx = int(patient_input) - 1
                             if 0 <= idx < len(available_patients):
@@ -154,34 +176,28 @@ class MIAWorkflow:
                             patient_file = patient_input if patient_input else available_patients[0]
                         
                         try:
-                            # Load patient data from JSON
                             patient_data = patient_loader.load_patient_data(patient_file)
                             state["patient_info"] = patient_data["patient_info"]
                             state["mri_metadata"] = patient_data["mri_metadata"]
                             
-                            # IMPORTANT: Do NOT override the image path from user input
-                            # Keep the image path that user already entered above
-                            
                             print(f"\n   ✓ Loaded: {state['patient_info']['name']}")
-                            print(f"   ✓ Study: {state['mri_metadata']['study_type']}")
-                            print(f"   ✓ Using image: {state['mri_image_path']}")
+                            print(f"   ✓ Study:  {state['mri_metadata']['study_type']}")
+                            print(f"   ✓ Image:  {state['mri_image_path']}")
                             
                         except Exception as e:
                             print(f"\n   ❌ Error loading patient file: {e}")
-                            print(f"   ❌ Cannot proceed without valid patient data")
                             state.setdefault("errors", []).append(f"Failed to load patient data: {str(e)}")
                             return state
                     else:
                         print("   ❌ No patient files found in data/patients/")
-                        print("   ❌ Cannot proceed without patient data")
                         state.setdefault("errors", []).append("No patient files available")
                         return state
-                
+
                 print("\n" + "=" * 80)
-                print("✅ Input collection completed!")
+                print("✅ Input collection complete — starting analysis...")
                 print("=" * 80 + "\n")
             else:
-                # Non-interactive mode: use defaults ONLY if data not already in state
+                # Non-interactive mode: use defaults if data not already in state
                 if not state.get("mri_image_path"):
                     state["mri_image_path"] = "data/sample_mri/sample_brain.jpg"
                 
@@ -202,6 +218,11 @@ class MIAWorkflow:
                         "sequence_type": "T2",
                         "imaging_plane": "Axial"
                     }
+
+                # Default to long report in non-interactive mode
+                if not state.get("report_type"):
+                    state["report_type"] = "long"
+
                 logger.info("Non-interactive mode: using default values")
         
         return state
@@ -373,7 +394,8 @@ class MIAWorkflow:
     
     def run(self, patient_info: Dict[str, Any] = None,
             mri_metadata: Dict[str, Any] = None,
-            mri_image_path: str = None) -> Dict[str, Any]:
+            mri_image_path: str = None,
+            report_type: str = None) -> Dict[str, Any]:
         """
         Run the complete MIA workflow.
         
@@ -386,7 +408,7 @@ class MIAWorkflow:
             Final workflow state
         """
         # Create initial state
-        state = self.create_initial_state(patient_info, mri_metadata, mri_image_path)
+        state = self.create_initial_state(patient_info, mri_metadata, mri_image_path, report_type)
         
         # Collect user input if needed
         state = self.collect_user_input(state)

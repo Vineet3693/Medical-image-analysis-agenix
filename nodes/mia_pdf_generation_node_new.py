@@ -968,6 +968,214 @@ def generate_mia_report(report: MIAReport, output_dir: str) -> str:
     return str(output_path)
 
 
+# ═════════════════════════════════════════════════════════════════════════════
+# SHORT REPORT  (3-page compact summary)
+# ═════════════════════════════════════════════════════════════════════════════
+def _short_cover_page(report: MIAReport) -> list:
+    """Short report Page 1: Cover + patient info + vision/impression summary."""
+    story = []
+    styles = get_styles()
+    urg = _urgency_cfg(report.urgency.value if hasattr(report.urgency, "value") else str(report.urgency))
+
+    story.append(Spacer(1, 14))
+    story.append(Paragraph(PDF_CONFIG["branding"]["header_text"], styles["Title"]))
+    story.append(Paragraph(PDF_CONFIG["branding"]["subtitle_text"], styles["Subtitle"]))
+    story.append(Spacer(1, 8))
+
+    # Urgency banner
+    urg_val = urg["label"]
+    urgency_bg = urg["bg"]
+    urgency_txt = urg["color"]
+    banner_data = [[Paragraph(f"<b>URGENCY: {urg_val}</b>",
+                              ParagraphStyle("UrgencyBannerS", fontSize=12,
+                                             fontName="Helvetica-Bold",
+                                             textColor=urgency_txt, alignment=TA_CENTER))]]
+    banner = Table(banner_data, colWidths=[451])
+    banner.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0),(-1,-1), urgency_bg),
+        ("TOPPADDING",    (0,0),(-1,-1), 8),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 8),
+        ("BOX",           (0,0),(-1,-1), 1.5, urgency_txt),
+    ]))
+    story.append(banner)
+    story.append(Spacer(1, 10))
+
+    # Patient info
+    patient = report.patient_info
+    meta    = report.mri_metadata
+    story.append(_section_header("PATIENT INFORMATION"))
+    story.append(Spacer(1, 6))
+    patient_rows = [
+        ["Patient Name:",   patient.name],
+        ["Patient ID:",     patient.patient_id or "N/A"],
+        ["Age / Gender:",   f"{patient.age} yrs  |  {patient.gender}"],
+        ["BMI:",            f"{patient.bmi} kg/m²  ({_bmi_category(patient.bmi)})"],
+        ["Profession:",     patient.profession],
+        ["Study Type:",     meta.study_type],
+        ["Study Date:",     meta.study_date.strftime("%Y-%m-%d")],
+        ["Report ID:",      report.report_id],
+    ]
+    story.append(_key_value_table(patient_rows))
+    story.append(Spacer(1, 12))
+
+    # Clinical impression/summary
+    story.append(_section_header("CLINICAL IMPRESSION", color=C["accent"]))
+    story.append(Spacer(1, 6))
+    impression_text = report.impression[:800] if report.impression else "Analysis completed successfully."
+    story.append(Paragraph(impression_text, styles["Body"]))
+    story.append(Spacer(1, 12))
+
+    # Recommendations summary
+    story.append(_section_header("RECOMMENDATIONS", color=colors.HexColor("#6366F1")))
+    story.append(Spacer(1, 6))
+    recs = report.recommendations[:500] if report.recommendations else "Consult with a qualified healthcare professional."
+    story.append(Paragraph(recs, styles["Body"]))
+
+    story.append(PageBreak())
+    return story
+
+
+def _short_findings_and_image_page(report: MIAReport) -> list:
+    """Short report Page 2: Findings summary table + medical image."""
+    story = []
+    styles = get_styles()
+    story.append(Spacer(1, 14))
+
+    # ── Findings summary table (compact) ──────────────────────────────────────
+    story.append(_section_header("FINDINGS SUMMARY"))
+    story.append(Spacer(1, 8))
+
+    header_row = [
+        Paragraph("<b>ID</b>",   styles["WhiteLabel"]),
+        Paragraph("<b>Location</b>", styles["WhiteLabel"]),
+        Paragraph("<b>Description</b>", styles["WhiteLabel"]),
+        Paragraph("<b>Severity</b>", styles["WhiteLabel"]),
+        Paragraph("<b>Clinical Significance</b>", styles["WhiteLabel"]),
+    ]
+    table_data = [header_row]
+    for f in report.findings:
+        sev_str   = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
+        sev_color = _severity_color(sev_str)
+        table_data.append([
+            Paragraph(str(f.finding_id), styles["Small"]),
+            Paragraph(str(f.location)[:35], styles["Small"]),
+            Paragraph(str(f.description)[:80] + ("…" if len(str(f.description)) > 80 else ""), styles["Small"]),
+            Paragraph(f'<font color="{_hex(sev_color)}"><b>{sev_str.upper()}</b></font>', styles["Small"]),
+            Paragraph(str(f.clinical_significance)[:70], styles["Small"]),
+        ])
+
+    tbl = Table(table_data, colWidths=[25, 90, 145, 60, 131])
+    tbl.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0),(-1,0),  C["primary"]),
+        ("TEXTCOLOR",     (0,0),(-1,0),  colors.white),
+        ("FONTSIZE",      (0,0),(-1,-1), 8),
+        ("GRID",          (0,0),(-1,-1), 0.4, C["border"]),
+        ("VALIGN",        (0,0),(-1,-1), "TOP"),
+        ("TOPPADDING",    (0,0),(-1,-1), 4),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 4),
+        ("ROWBACKGROUNDS",(0,1),(-1,-1), [colors.white, C["light_gray"]]),
+    ]))
+    story.append(tbl)
+    story.append(Spacer(1, 14))
+
+    # ── Medical image (half-page) ──────────────────────────────────────────────
+    story.append(_section_header("MEDICAL IMAGE", color=C["primary"]))
+    story.append(Spacer(1, 8))
+
+    if hasattr(report, "mri_image_path") and report.mri_image_path:
+        img_path = Path(report.mri_image_path)
+        if img_path.exists():
+            try:
+                img = Image(str(img_path), width=4.5*inch, height=4.5*inch)
+                img.hAlign = "CENTER"
+                story.append(img)
+                story.append(Spacer(1, 6))
+                story.append(Paragraph(f"<i>File: {img_path.name}</i>", styles["Small"]))
+            except Exception as e:
+                logger.warning(f"Short report image load error: {e}")
+                story.append(Paragraph("Image could not be rendered.", styles["Body"]))
+        else:
+            story.append(Paragraph("⚠️  Image file not found.", styles["Body"]))
+    else:
+        story.append(Paragraph("No medical image was provided.", styles["Body"]))
+
+    story.append(PageBreak())
+    return story
+
+
+def _short_image_only_page(report: MIAReport) -> list:
+    """Short report Page 3: Medical image full page, large and centred."""
+    story = []
+    styles = get_styles()
+    story.append(Spacer(1, 14))
+    story.append(_section_header("MEDICAL IMAGE — FULL VIEW", color=C["primary"]))
+    story.append(Spacer(1, 12))
+
+    if hasattr(report, "mri_image_path") and report.mri_image_path:
+        img_path = Path(report.mri_image_path)
+        if img_path.exists():
+            try:
+                img = Image(str(img_path), width=6.5*inch, height=6.5*inch)
+                img.hAlign = "CENTER"
+                story.append(img)
+                story.append(Spacer(1, 8))
+                story.append(Paragraph(
+                    f"<i>{img_path.name}  |  Generated by MIA — {report.generated_by}</i>",
+                    styles["Small"]))
+            except Exception as e:
+                logger.warning(f"Short report full-image error: {e}")
+                story.append(Paragraph("Image could not be rendered.", styles["Body"]))
+        else:
+            story.append(Paragraph("⚠️  Image file not found.", styles["Body"]))
+    else:
+        story.append(Paragraph("No medical image was provided.", styles["Body"]))
+
+    return story
+
+
+def generate_short_report(report: MIAReport, output_dir: str) -> str:
+    """
+    Generate a compact 3-page short-form MIA PDF report.
+
+    Page 1 — Cover + Patient Info + Clinical Impression + Recommendations
+    Page 2 — Findings Summary Table + Medical Image (half-page)
+    Page 3 — Medical Image full-page view
+
+    Args:
+        report:     MIAReport pydantic model with all analysis data
+        output_dir: Directory where the PDF will be saved
+
+    Returns:
+        Absolute path to the generated PDF file
+    """
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    filename    = f"{report.patient_info.patient_id or 'patient'}_{report.report_id}_short.pdf"
+    output_path = output_dir / filename
+
+    logger.info(f"Generating SHORT PDF report (3 pages) → {output_path}")
+
+    doc = SimpleDocTemplate(
+        str(output_path),
+        pagesize=A4,
+        topMargin=PDF_CONFIG["margin_top"],
+        bottomMargin=PDF_CONFIG["margin_bottom"],
+        leftMargin=PDF_CONFIG["margin_left"],
+        rightMargin=PDF_CONFIG["margin_right"],
+    )
+
+    story: list = []
+    story.extend(_short_cover_page(report))           # Page 1
+    story.extend(_short_findings_and_image_page(report))  # Page 2
+    story.extend(_short_image_only_page(report))      # Page 3
+
+    doc.build(story, canvasmaker=NumberedCanvas)
+
+    logger.info(f"✓ Short PDF report generated: {output_path}")
+    return str(output_path)
+
+
 """
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                     MIA PDF GENERATION NODE                                  ║
@@ -1450,8 +1658,14 @@ class PDFGenerationNode:
         try:
             logger.info(f"Output directory: {self.output_dir}")
             logger.info("Calling PDF generator...")
-            
-            pdf_path = generate_mia_report(mia_report, str(self.output_dir))
+
+            report_type = (state.get("report_type") or "long").lower().strip()
+            if report_type == "short":
+                logger.info("Report type: SHORT (3 pages)")
+                pdf_path = generate_short_report(mia_report, str(self.output_dir))
+            else:
+                logger.info("Report type: LONG (full report)")
+                pdf_path = generate_mia_report(mia_report, str(self.output_dir))
             
             state["pdf_path"] = pdf_path
             

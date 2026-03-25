@@ -54,7 +54,8 @@ def calculate_bmi(height_cm: float, weight_kg: float) -> float:
     return round(weight_kg / (height_m ** 2), 1)
 
 
-def run_workflow_background(report_id: str, image_path: str, patient_data: dict, mri_metadata: dict):
+def run_workflow_background(report_id: str, image_path: str, patient_data: dict,
+                            mri_metadata: dict, report_type: str = "long"):
     """Run MIA workflow in background"""
     try:
         logger.info(f"Starting background workflow for report: {report_id}")
@@ -70,7 +71,8 @@ def run_workflow_background(report_id: str, image_path: str, patient_data: dict,
         final_state = workflow.run(
             patient_info=patient_data,
             mri_metadata=mri_metadata,
-            mri_image_path=image_path
+            mri_image_path=image_path,
+            report_type=report_type
         )
         
         # Update state with results
@@ -94,7 +96,8 @@ async def analyze_mri(
     image: UploadFile = File(..., description="MRI image file (JPEG, PNG, DICOM)"),
     patient_data: str = Form(..., description="Patient information as JSON string"),
     mri_metadata: str = Form(..., description="MRI metadata as JSON string"),
-    medical_report: UploadFile = File(None, description="Optional: Patient's medical report/history document (PDF, TXT, DOCX)")
+    medical_report: UploadFile = File(None, description="Optional: Patient's medical report/history document (PDF, TXT, DOCX)"),
+    report_type: str = Form("long", description="Report format: 'short' (3 pages) or 'long' (full 11-page report)")
 ):
     """
     Analyze MRI image with patient data
@@ -152,6 +155,7 @@ async def analyze_mri(
             "created_at": datetime.now().isoformat(),
             "image_path": image_path,
             "medical_report_path": medical_report_path,
+            "report_type": report_type,
             "errors": []
         }
         
@@ -161,7 +165,8 @@ async def analyze_mri(
             report_id,
             image_path,
             patient_info,
-            mri_meta
+            mri_meta,
+            report_type
         )
         
         return AnalysisStartResponse(
